@@ -84,7 +84,7 @@ class strLabelConverter(object):
                 return ''.join(char_list)
         else:
             # batch mode
-            assert t.numel() == length.sum(), "texts with length: {} does not match declared length: {}".format(t.numel(), length.sum())
+            assert t.numel() == length.sum(), f"texts with length: {t.numel()} does not match declared length: {length.sum()}"
             texts = []
             index = 0
             for i in range(length.numel()):

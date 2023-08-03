@@ -15,7 +15,7 @@ parser.add_argument('--trainRoot', help='path to training dataset')
 parser.add_argument('--valRoot', help='path to evaluation dataset')
 parser.add_argument('--out', type=str, default="out/temp.txt", help='predictions file')
 parser.add_argument('--lang', help='path to dataset')
-
+parser.add_argument('--labels',help='path to labels file')
 # dataset & model
 parser.add_argument('--alphabet', type=str, default='0123456789abcdefghijklmnopqrstuvwxyz*')
 parser.add_argument('--alphabet_type', type=str, default='string', choices=['string', 'file'])
@@ -54,7 +54,7 @@ parser.add_argument('--cnn_nc', type=int, default=1)
 # training params
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
-parser.add_argument('--nepoch', type=int, default=1, help='number of epochs to train for')
+parser.add_argument('--nepoch', type=int, default=10, help='number of epochs to train for')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--gpu_id', type=str, default='0', help='gpu device ids')
 parser.add_argument('--node_dir', default='out/crnn_results', help='Where to store samples and models')
