@@ -111,7 +111,7 @@ if __name__ == '__main__':
                 img_list.append(f'{opt.root_dir}'+path.strip())
                 label_list.append(label.strip())
                 alphabet = alphabet.union(list(label.strip()))
-        outputPath = opt.save;
+        outputPath = opt.save
         # print(f"Output path: {outputPath}")
         print(f"Creating {split} dataset")
         # createDataset(outputPath, img_list, label_list, checkValid=True)

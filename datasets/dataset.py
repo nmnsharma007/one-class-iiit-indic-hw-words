@@ -22,20 +22,18 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class lmdbDataset(data.Dataset):
     def __init__(self, root, voc, num_samples=np.inf,
-                 transform=None, label_transform=None,
+                 transform=None, transformed_labels=None,
                  voc_type='string', lowercase=False,
                  alphanumeric=False, ctc_blank='<b>',
                  return_list=False):
         super(lmdbDataset, self).__init__()
-
         self.env = lmdb.open(root, max_readers=100, readonly=True)
-
         assert self.env is not None, "cannot create lmdb from %s" % root
         self.txn = self.env.begin()
 
         self.voc = voc
         self.transform = transform
-        self.label_transform = label_transform
+        self.transformed_labels = transformed_labels
         self.nSamples = int(float(self.txn.get(b"num-samples")))
         self.nSamples = min(self.nSamples, num_samples)
 
@@ -72,13 +70,15 @@ class lmdbDataset(data.Dataset):
             img = self.transform(img)
 
         label_key = b'label-%09d' % index
-        word = self.txn.get(label_key).decode()
-
+        word_index = self.txn.get(label_key).decode()
+        # word = int(word)
         # file_key = b'fname-%09d' % index
         # fname = self.txn.get(file_key).decode()
 
-        if self.label_transform is not None:
-            word = self.label_transform(word)
+        # if self.label_transform is not None:
+        #     word = self.label_transform(word)
+        if self.transformed_labels is not None:
+            word = self.transformed_labels[int(word_index)].strip()
 
         # remove accented characters from labels
         out_of_char = f'[^{"".join(self.voc)}]'

@@ -10,7 +10,7 @@ For more info about the pipeline, please refer to *IIIT-INDIC-HW-WORDS: A Datase
 ### Dataset preparation:
 - Create LMDB files for train, validation and test splits.
 ```
-python tools/create_dataset.py --root_dir <dataset_dir> --save <lmdb_dst_path>
+python tools/create_dataset.py --root_dir <dataset_dir> --save <lmdb_dst_path> --lang <lang_code>
 ```
 The dataset folder should follow the same structure as IIIT-INDIC-HW-WORDS structure.
 

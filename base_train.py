@@ -37,11 +37,17 @@ def train_params(parameters, opt_class, sch_class, opt_args, sch_args):
             schedulers.append(sch_class[i](optimizers[i], **sch_args[i]))
     return optimizers, schedulers
 
+# Define a function for weight initialization of neural network layers
 def weights_init(m):
+    # Get the class name of the module
     classname = m.__class__.__name__
-    # print(f'Random weight initialization in {classname}')
+
+    # If the module is a Convolutional layer, initialize its weights with random values from a normal distribution
     if classname.find('Conv') != -1:
         m.weight.data.normal_(0.0, 0.02)
+
+    # If the module is a Batch Normalization layer, initialize its weights with random values from a normal distribution
+    # and set its bias to 0
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
@@ -53,20 +59,22 @@ def check_data(data_loader, name='sample'):
         cpu_texts = data[1]
         nim = min(16, cpu_images.size(0))
         out = torchvision.utils.make_grid(cpu_images[:nim], nrow=1)
-        out = out.permute(1, 2, 0)
         # print(f'Pixel range {name}: ', cpu_images[0].max(), cpu_images[0].min())
+        out = out.permute(1, 2, 0)
         out = (out*128 + 128).cpu().numpy()
-        cv2.imwrite('/home/santhoshini/temp/{}.jpg'.format(name), out)
+        
+        cv2.imwrite(f'/data/iiit-indic-hw-words/temp/{name}.jpg', out)
         return
 
 def write_info(model, opt):
-    with open('{}/model.info'.format(opt.node_dir), 'w') as f:
-        # f.write(str(opt)+'\n')
+    with open(f'{opt.node_dir}/model.info', 'w') as f:
+    # f.write(str(opt)+'\n')
         for arg, value in sorted(vars(opt).items()):
             f.write(f"Argument {arg}: {value}\n")
 
         f.write('\n\nModel Architecture\n\n')
-        f.write(str(model)+'\n')
+        f.write(f"{model}\n")
+
     return
 
 class BaseHTR(object):
@@ -74,11 +82,13 @@ class BaseHTR(object):
         self.opt = opt
         self.mode = self.opt.mode
         self.dataset_name = dataset_name
+        self.labels = self.opt.labels
         self.stn_nc = self.opt.stn_nc
         self.cnn_nc = self.opt.cnn_nc
         self.nheads = self.opt.nheads
         self.criterion = CTCLoss(blank=0, reduction='sum', zero_infinity=True)
-        self.label_transform = self.init_label_transform()
+        # self.label_transform = self.init_label_transform()
+        self.transformed_labels = self.init_label_transform()
         self.test_transforms = self.init_test_transforms()
         self.train_transforms = self.init_train_transforms()
         self.val1_iter = self.opt.val1_iter # Number of train data batches that will be validated
@@ -125,18 +135,17 @@ class BaseHTR(object):
 
     def run(self):
         if self.mode == "train":
-            # print(self.train_root, self.test_root)
             self.train_data, self.train_loader = self.get_data_loader(self.train_root,
                                                                       self.train_transforms,
-                                                                      self.label_transform)
+                                                                      self.transformed_labels,num_samples=20)
             self.test_data, self.test_loader = self.get_data_loader(self.test_root,
                                                                       self.test_transforms,
-                                                                      self.label_transform)
+                                                                      self.transformed_labels,20)
             self.converter = utils.strLabelConverter(self.test_data.id2char,
                                                      self.test_data.char2id,
                                                      self.test_data.ctc_blank)
-            check_data(self.train_loader, '{}train'.format(self.dataset_name))
-            check_data(self.test_loader, '{}val'.format(self.dataset_name))
+            check_data(self.train_loader, f'{self.dataset_name}train')
+            check_data(self.test_loader, f'{self.dataset_name}val')
             # pdb.set_trace()
             self.nclass = self.test_data.rec_num_classes
             self.model, self.parameters = self.get_model()
@@ -145,21 +154,21 @@ class BaseHTR(object):
             print('Classes: ', self.test_data.voc)
             print('#Train Samples: ', self.train_data.nSamples)
             print('#Val Samples: ', self.test_data.nSamples)
-            # self.train()
+            self.train()
         elif self.mode == "test":
             self.test_data, self.test_loader = self.get_data_loader(self.test_root,
                                                                       self.test_transforms,
-                                                                      self.label_transform)
+                                                                      self.transformed_labels)
             self.converter = utils.strLabelConverter(self.test_data.id2char,
                                                      self.test_data.char2id,
                                                      self.test_data.ctc_blank)
-            check_data(self.test_loader, '{}test'.format(self.dataset_name))
+            check_data(self.test_loader, f'{self.dataset_name}test')
             self.nclass = self.test_data.rec_num_classes
             self.model, self.parameters = self.get_model()
             self.init_variables()
             print('Classes: ', self.test_data.voc)
             print('#Test Samples: ', self.test_data.nSamples)
-            # self.eval(self.test_data)
+            self.eval(self.test_data)
 
     def init_train_transforms(self):
         T = Compose([Rescale((self.opt.imgH, self.opt.imgW)),ElasticTransformation(0.7),ToTensor()])
@@ -170,8 +179,12 @@ class BaseHTR(object):
         return T
 
     def init_label_transform(self):
-        T = None
-        return T
+        lines = []
+        with open(self.opt.labels,"r") as fp:
+            for line in fp:
+                lines.append(line)
+        # T = None
+        return lines
 
     def init_variables(self):
         self.image = torch.FloatTensor(self.opt.batchSize, 3, self.opt.imgH, self.opt.imgH)
@@ -235,20 +248,37 @@ class BaseHTR(object):
             crnn.apply(weights_init)
         return crnn, crnn.parameters()
 
-    def get_data_loader(self, root, im_transforms, label_transforms, num_samples=np.inf):
+    def get_data_loader(self, root, im_transforms, transformed_labels, num_samples=np.inf):
+    # Create a dataset object using the provided root directory, image and label transforms, and other options.
+    # The dataset will load images and corresponding labels from an LMDB database.
         data = dataset.lmdbDataset(root=root, voc=self.opt.alphabet, num_samples=num_samples,
-                                   transform=im_transforms, label_transform=label_transforms,
-                                   voc_type=self.opt.alphabet_type, lowercase=self.opt.lowercase,
-                                   alphanumeric=self.opt.alphanumeric, return_list=True)
+                                transform=im_transforms, transformed_labels=transformed_labels,
+                                voc_type=self.opt.alphabet_type, lowercase=self.opt.lowercase,
+                                alphanumeric=self.opt.alphanumeric, return_list=True)
+
+        # Check if random sampling of data is required for training (random_sample = True)
         if not self.opt.random_sample:
+            # If not using random sampling, create a randomSequentialSampler that will shuffle the data
+            # and return samples sequentially in batches of batchSize.
             sampler = dataset.randomSequentialSampler(data, self.opt.batchSize)
         else:
+            # If random_sample is True, set the sampler to None, which will perform random shuffling in DataLoader.
             sampler = None
+
+        # Create a DataLoader object to handle loading data in batches for training or testing.
+        # The DataLoader wraps the dataset and provides functionalities like batching, shuffling, and parallel loading of data.
         data_loader = torch.utils.data.DataLoader(data, batch_size=self.opt.batchSize,
                                                 shuffle=True, sampler=sampler,
                                                 num_workers=int(self.opt.workers),
                                                 collate_fn=dataset.collatedict())
+
+        # data_iter = iter(data_loader)
+        # batch_data = next(data_iter)
+        # X,y = batch_data[0],batch_data[1]
+        # Return the dataset and the DataLoader object.
+        # The DataLoader will be used to iterate over the dataset in batches during training or testing.
         return data, data_loader
+
 
     def train(self, max_iter=np.inf):
         loss_avg = utils.averager()
@@ -257,11 +287,14 @@ class BaseHTR(object):
         write_info(self.model, self.opt)
         self.writer = Writer(self.opt.lr, self.opt.nepoch, self.opt.node_dir, use_tb=self.opt.use_tb)
         self.iterations = 0
+        # print("NUMBER OF EPOCHS: ",self.opt.nepoch)
+        ### fine upto here
         for epoch in range(self.opt.nepoch):
             self.writer.epoch = epoch
             self.writer.nbatches = len(self.train_loader)
             self.train_iter = iter(self.train_loader)
             i = 0
+            # iterating through the batches
             while i < len(self.train_loader):
                 if self.iterations % self.opt.valInterval == 0:
                     valloss, val_CER, val_WER = self.eval(self.test_data, max_iter=self.val2_iter)
@@ -269,16 +302,20 @@ class BaseHTR(object):
                     # trloss, trER = self.eval(self.train_data, max_iter=self.val1_iter)
                     # self.writer.update_trloss2(trloss.val().item(), trER)
                     torch.save(
-                            self.model.state_dict(), '{0}/{1}.pth'.format(self.opt.node_dir,'latest'))
+                        self.model.state_dict(), f"{self.opt.node_dir}/latest.pth"
+                    )
                     if val_CER < prev_cer:
                         torch.save(
-                            self.model.state_dict(), '{0}/{1}.pth'.format(self.opt.node_dir,'best_cer'))
+                            self.model.state_dict(), f"{self.opt.node_dir}/best_cer.pth"
+                        )
                         prev_cer = val_CER
                         self.writer.update_best_er(val_CER, self.iterations)
                     if val_WER < prev_wer:
                         torch.save(
-                            self.model.state_dict(), '{0}/{1}.pth'.format(self.opt.node_dir,'best_wer'))
+                            self.model.state_dict(), f"{self.opt.node_dir}/best_wer.pth"
+                        )
                         prev_wer = val_WER
+
                         # self.writer.update_best_er(val_WER, self.iterations)
                 cost = self.trainBatch()
                 loss_avg.add(cost)
@@ -381,44 +418,46 @@ class BaseHTR(object):
             for target, pred in zip(gts, decoded_preds):
                 f.write('{}\n{}\n'.format(pred, target))
             f.close()
-            print('Generated predictions for {} samples'.format(self.test_data.nSamples))
+            print(f'Generated predictions for {self.test_data.nSamples} samples')
         return
 
     def trainBatch(self):
+        # Set the model to training mode
         self.model.train()
+
+        # Forward pass on the next batch of training data
         output_dict = self.forward_sample(next(self.train_iter))
         batch_size = output_dict['batch_size']
+
+        # Compute the logarithm of the softmax probabilities of the model predictions
         preds = F.log_softmax(output_dict['probs'], 2)
+
+        # Create a tensor containing the size of each prediction batch
         preds_size = Variable(torch.LongTensor([preds.size(0)] * batch_size))
-        cost = self.get_loss({'preds': preds, 'batch_size':batch_size, 'preds_size':preds_size, 'params':output_dict['params']})
+
+        # Calculate the loss using the computed predictions and other parameters
+        cost = self.get_loss({'preds': preds, 'batch_size': batch_size, 'preds_size': preds_size, 'params': output_dict['params']})
+
+        # Check if the computed cost contains NaN (not a number)
         if torch.isnan(cost):
-            pdb.set_trace()
+            pdb.set_trace()  # If NaN is detected, pause the program for debugging
+
         self.model.zero_grad()
+        # Reset gradients to zero
+
+        # Backpropagate the loss to update the model parameters
         cost.backward()
 
-        # grad_zero_flag = 0
-        # for name, param in self.model.named_parameters():
-        #     if param.grad.sum() == 0:
-        #         if name.find('bias')<0:
-        #             print(name)
-        #             grad_zero_flag = 1
-        # if grad_zero_flag:
-        #     print(f'---------{self.iterations} training-------------')
-
-        # pdb.set_trace()
-        # try:
-        #     tparams = torch.stack(output_dict['params'], axis=1)
-        # except:
-        #     tparams = output_dict['params']
-        # if torch.all(tparams[0] == tparams.mean(axis=0)):
-        #     if self.iterations != 0:
-        #         pdb.set_trace()
-
+        # Update the model's parameters based on the computed gradients
         self.optimizer.step()
+
+        # If a scheduler is used, update the learning rate
         if self.scheduler:
             self.scheduler.step()
 
+        # Return the computed cost (loss) for this batch
         return cost
+
 
 
 
