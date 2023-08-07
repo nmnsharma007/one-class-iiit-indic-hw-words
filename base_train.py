@@ -137,10 +137,10 @@ class BaseHTR(object):
         if self.mode == "train":
             self.train_data, self.train_loader = self.get_data_loader(self.train_root,
                                                                       self.train_transforms,
-                                                                      self.transformed_labels,num_samples=20)
+                                                                      self.transformed_labels,1000)
             self.test_data, self.test_loader = self.get_data_loader(self.test_root,
                                                                       self.test_transforms,
-                                                                      self.transformed_labels,20)
+                                                                      self.transformed_labels,100)
             self.converter = utils.strLabelConverter(self.test_data.id2char,
                                                      self.test_data.char2id,
                                                      self.test_data.ctc_blank)
@@ -158,7 +158,7 @@ class BaseHTR(object):
         elif self.mode == "test":
             self.test_data, self.test_loader = self.get_data_loader(self.test_root,
                                                                       self.test_transforms,
-                                                                      self.transformed_labels)
+                                                                      self.transformed_labels,num_samples=20)
             self.converter = utils.strLabelConverter(self.test_data.id2char,
                                                      self.test_data.char2id,
                                                      self.test_data.ctc_blank)
@@ -294,13 +294,14 @@ class BaseHTR(object):
             self.writer.nbatches = len(self.train_loader)
             self.train_iter = iter(self.train_loader)
             i = 0
+            repeat = len(self.train_loader)
             # iterating through the batches
-            while i < len(self.train_loader):
+            while i < repeat:
                 if self.iterations % self.opt.valInterval == 0:
                     valloss, val_CER, val_WER = self.eval(self.test_data, max_iter=self.val2_iter)
                     self.writer.update_valloss(valloss.val().item(), val_CER)
-                    # trloss, trER = self.eval(self.train_data, max_iter=self.val1_iter)
-                    # self.writer.update_trloss2(trloss.val().item(), trER)
+                    # trloss,tr_CER, trWER = self.eval(self.train_data, max_iter=self.val1_iter)
+                    # self.writer.update_trloss2(trloss.val().item(), trWER)
                     torch.save(
                         self.model.state_dict(), f"{self.opt.node_dir}/latest.pth"
                     )
@@ -309,14 +310,15 @@ class BaseHTR(object):
                             self.model.state_dict(), f"{self.opt.node_dir}/best_cer.pth"
                         )
                         prev_cer = val_CER
-                        self.writer.update_best_er(val_CER, self.iterations)
+                        # self.writer.update_best_er(val_CER, self.iterations)
                     if val_WER < prev_wer:
+
                         torch.save(
                             self.model.state_dict(), f"{self.opt.node_dir}/best_wer.pth"
                         )
                         prev_wer = val_WER
 
-                        # self.writer.update_best_er(val_WER, self.iterations)
+                        self.writer.update_best_er(val_WER, self.iterations)
                 cost = self.trainBatch()
                 loss_avg.add(cost)
                 self.iterations += 1
@@ -410,13 +412,14 @@ class BaseHTR(object):
                 tw += 1
                 wc += utils.levenshtein(target, pred)
                 tc += len(target)
+            
             wer = (ww / tw)*100
             cer = (wc / tc)*100
             return loss_avg, cer, wer
         else:
             f = open(self.opt.out, 'w')
             for target, pred in zip(gts, decoded_preds):
-                f.write('{}\n{}\n'.format(pred, target))
+                f.write(f'{pred}\n{target}\n')
             f.close()
             print(f'Generated predictions for {self.test_data.nSamples} samples')
         return
@@ -425,6 +428,8 @@ class BaseHTR(object):
         # Set the model to training mode
         self.model.train()
 
+        # Reset gradients to zero
+        self.model.zero_grad()
         # Forward pass on the next batch of training data
         output_dict = self.forward_sample(next(self.train_iter))
         batch_size = output_dict['batch_size']
@@ -442,8 +447,6 @@ class BaseHTR(object):
         if torch.isnan(cost):
             pdb.set_trace()  # If NaN is detected, pause the program for debugging
 
-        self.model.zero_grad()
-        # Reset gradients to zero
 
         # Backpropagate the loss to update the model parameters
         cost.backward()

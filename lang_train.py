@@ -23,18 +23,18 @@ if opt.mode == 'test':
 else:
 	opt.valRoot = f'/data/iiit-indic-hw-words/datasets/{opt.lang}/iiit-indic/{opt.lang}-val-lmdb'
 
-opt.valInterval = 1000
+opt.valInterval = 5
 opt.displayInterval = 100
-opt.nepoch = 5
+opt.nepoch = 20
 opt.cuda = True
 opt.random_sample = True
-opt.workers = 10
+opt.workers = 1
 opt.batchSize = 64
 opt.ngpu = 1
 
 
 opt.adadelta = True
-opt.lr = 0.001
+opt.lr = 1
 # opt.STN_type = 'Affine'
 # opt.tps_inputsize = [32, 64]
 
