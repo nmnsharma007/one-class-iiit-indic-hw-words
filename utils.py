@@ -123,7 +123,7 @@ class strLineLabelConverter(object):
             text = [self.char2id[char] for char in list(text)]
             entext[:len(text)] = text
             length = [max_length]
-        elif isinstance(text, collections.Iterable):
+        elif isinstance(text, collections.abc.Iterable):
             entext = []
             length = []
             for s in text:
