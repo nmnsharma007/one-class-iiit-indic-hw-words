@@ -15,7 +15,7 @@ from torch.utils import data
 from torch.utils.data import sampler
 from torchvision import transforms
 
-from utils import get_vocabulary, to_numpy
+from tools.utils import get_vocabulary, to_numpy
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 

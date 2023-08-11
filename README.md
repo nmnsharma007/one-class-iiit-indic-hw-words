@@ -33,7 +33,7 @@ Language codes for Indic scripts:
 ## Evaluation and testing:
 To generate predictions for a <test-lmdb> file, try:
 ```
-python lang_train.py --lang <lang_code> --mode test --val_dir <test-lmdb-path> --output <save-predictions-path>
+python lang_train.py --lang <lang_code> --mode test --valRoot <test-lmdb-path> --pretrained <trained_model_path> --out <save-predictions-path> 
 ```
 To evaluate the generated predictions, try the following:
 ```
@@ -41,14 +41,14 @@ python tools/score.py --preds <save-predictions-path>
 ```
 or
 ```
-python tools/oov_score.py --preds <save-predictions-path> --vocab <path-to-train-vocab>
+python tools/oov_score.py --preds <save-predictions-path> --vocab <path-to-train-vocab> --labels <path-to-all-labels-file>
 ```
 to get WER and CER for OOV words only.
 
 Please check the code for more config options.
 
-## Pretrained Models:
-Will be released soon.
+<!-- ## Pretrained Models:
+Will be released soon. -->
 
 ## Acknowledgment:
 We thank these repositories [crnn.pytorch](https://github.com/meijieru/crnn.pytorch), [deep-text-recognition-benchmark](https://github.com/clovaai/deep-text-recognition-benchmark) for releasing their codes.

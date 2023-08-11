@@ -14,21 +14,21 @@ lang = f'{opt.lang}'
 dataset_name = f'{opt.lang}'
 opt.alphabet_type = "file"
 opt.alphabet = f"{opt.lang}.txt"
-opt.trainRoot = f'/data/iiit-indic-hw-words/datasets/{opt.lang}/iiit-indic/{opt.lang}-train-lmdb'
+# opt.trainRoot = f'/data/iiit-indic-hw-words/datasets/{opt.lang}/iiit-indic/{opt.lang}-train-lmdb'
 opt.labels = f'/data/iiit-indic-hw-words/datasets/{opt.lang}/iiit-indic/vocab.txt'
 
 if opt.mode == 'test':
-    opt.valRoot = f'/data/iiit-indic-hw-words/datasets/{opt.lang}/iiit-indic/{opt.lang}-test-lmdb'
+    # opt.valRoot = f'/data/iiit-indic-hw-words/datasets/{opt.lang}/iiit-indic/{opt.lang}-test-lmdb'
     print(f'Testing on {opt.valRoot}')
-else:
-	opt.valRoot = f'/data/iiit-indic-hw-words/datasets/{opt.lang}/iiit-indic/{opt.lang}-val-lmdb'
+# else:
+# 	opt.valRoot = f'/data/iiit-indic-hw-words/datasets/{opt.lang}/iiit-indic/{opt.lang}-val-lmdb'
 
-opt.valInterval = 5
+opt.valInterval = 1000
 opt.displayInterval = 100
-opt.nepoch = 20
+opt.nepoch = 10
 opt.cuda = True
 opt.random_sample = True
-opt.workers = 1
+opt.workers = 10
 opt.batchSize = 64
 opt.ngpu = 1
 
