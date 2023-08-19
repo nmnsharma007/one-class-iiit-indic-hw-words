@@ -72,6 +72,6 @@ else:
 			tc += len(gt)
 
 
-print(ww, tw)
+print(f"Wrong words: {ww}, Total words: {tw}")
 print('WER: ', (ww/tw)*100)
 print('CER: ', (wc/tc)*100)

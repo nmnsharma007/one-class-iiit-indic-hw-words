@@ -10,7 +10,7 @@ import pdb
 import torch.nn.functional as F
 from .affine_stn import STNHead as AffineSTNHead
 import matplotlib.pyplot as plt
-from utils import *
+from tools.utils import *
 
 
 class BidirectionalLSTM(nn.Module):

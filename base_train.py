@@ -20,13 +20,15 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, CyclicLR, StepLR
 from torchvision.transforms import Compose
 
 
-import utils
+import sys
 import datasets.dataset as dataset
 from config import *
 from datasets.ae_transforms import *
 from tools.logger import Writer
 from models.model import ModelBuilder
 
+sys.path.append('.')
+from tools import utils
 
 def train_params(parameters, opt_class, sch_class, opt_args, sch_args):
     optimizers = []
@@ -137,10 +139,10 @@ class BaseHTR(object):
         if self.mode == "train":
             self.train_data, self.train_loader = self.get_data_loader(self.train_root,
                                                                       self.train_transforms,
-                                                                      self.transformed_labels,1000)
+                                                                      self.transformed_labels,np.inf)
             self.test_data, self.test_loader = self.get_data_loader(self.test_root,
                                                                       self.test_transforms,
-                                                                      self.transformed_labels,100)
+                                                                      self.transformed_labels,np.inf)
             self.converter = utils.strLabelConverter(self.test_data.id2char,
                                                      self.test_data.char2id,
                                                      self.test_data.ctc_blank)
@@ -158,7 +160,7 @@ class BaseHTR(object):
         elif self.mode == "test":
             self.test_data, self.test_loader = self.get_data_loader(self.test_root,
                                                                       self.test_transforms,
-                                                                      self.transformed_labels,num_samples=20)
+                                                                      self.transformed_labels,num_samples=np.inf)
             self.converter = utils.strLabelConverter(self.test_data.id2char,
                                                      self.test_data.char2id,
                                                      self.test_data.ctc_blank)

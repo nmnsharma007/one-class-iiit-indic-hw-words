@@ -1,5 +1,5 @@
 import argparse
-from utils import levenshtein
+from utils import levenshtein,get_vocab
 import pdb
 import re
 
@@ -16,16 +16,17 @@ def clean(label):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--preds', type=str, default='../misc/preds/temp.txt', help='path to preds file')
-parser.add_argument('--vocab', type=str, required=True)
+parser.add_argument('--vocab', type=str, required=True,help="Path to desired vocabulary such as train/val/test")
+parser.add_argument("--labels",type=str,required=True,help="Path to file containing all words")
 parser.add_argument('--mode', type=str, default='word', help='path to preds file')
-parser.add_argument('--lower', action='store_true', help='convert strings to lowercase ebfore comparison')
+parser.add_argument('--lower', action='store_true', help='convert strings to lowercase before comparison')
 parser.add_argument('--alnum', action='store_true', help='convert strings to alphanumeric before comparison')
 opt = parser.parse_args()
 
-train_vocab = []
-with open(opt.vocab) as f:
-    for line in f:
-        train_vocab.append(line.strip())
+train_vocab = get_vocab(opt.vocab,opt.labels)
+# with open(opt.vocab) as f:
+#     for line in f:
+#         train_vocab.append(line.strip())
 
 
 f = open(opt.preds, 'r')
@@ -59,7 +60,7 @@ if opt.mode == 'word':
                 ww += 1
                 wc += levenshtein(gt, pred)
                 word_lens.append(len(gt))
-                print(gt, pred, wc)
+                print(f"GROUND TRUTH: {gt}, PREDICTION: {pred},WORD CHARACTER EDIT DISTANCE: {wc}")
             tc += len(gt)
             tw += 1
 else:
@@ -85,7 +86,7 @@ else:
             tc += len(gt)
 
 
-print(ww, tw)
+print(f"Wrong words: {ww}, Total words: {tw}")
 print('WER: ', (ww/tw)*100)
 print('CER: ', (wc/tc)*100)
 print('Incorrect Avg: ', sum(word_lens)/len(word_lens))

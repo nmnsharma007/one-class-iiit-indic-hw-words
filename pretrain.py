@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 
 opt = parser.parse_args()
 
-lang = opt.lang}
+lang = opt.lang
 dataset_name = opt.lang
 opt.alphabet_type = "file"
 opt.alphabet = f"{opt.lang}.txt"

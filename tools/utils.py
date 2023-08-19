@@ -387,3 +387,16 @@ def synthesizeImage(rText, shape):
     brush = ImageDraw.Draw(image)
     brush.text((0, 0), rText, font=font, fill=0)
     return image
+
+def get_vocab(filepath,labelpath):
+    all_words = []
+    with open(labelpath,"r") as fp:
+        for line in fp:
+            all_words.append(line.strip())
+    vocab = []
+    with open(filepath,"r") as fp:
+        for line in fp:
+            _,index_str = line.split(",")
+            index = int(index_str)
+            vocab.append(all_words[index])
+    return vocab
