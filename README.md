@@ -44,5 +44,3 @@ or
 python tools/oov_score.py --preds <save-predictions-path> --vocab <path-to-train-vocab> --labels <path-to-all-labels-file>
 ```
 to get WER and CER for OOV words only.
-
-```
